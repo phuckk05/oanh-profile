@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "777014175458",
+    "project_id": "proflie-8b7c6",
+    "storage_bucket": "proflie-8b7c6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:777014175458:android:3d91aaa15132649c20a0bb",
+        "android_client_info": {
+          "package_name": "com.example.oanh_file"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDqyuIGIjspkeYs9Gw7KEF3kRbxCnX6rT0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
