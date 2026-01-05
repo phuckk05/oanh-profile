@@ -125,90 +125,79 @@ class BlogPage extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: Stack(
-          fit: StackFit.expand,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Image
-            imageUrl.isNotEmpty
-                ? Image.network(
-                  imageUrl,
-                  width: double.infinity,
-                  height: double.infinity,
-                  fit: BoxFit.cover,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      color: AppColors.secondaryBg,
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          value:
-                              loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                  : null,
-                          color: AppColors.primaryOrange,
+            Expanded(
+              child:
+                  imageUrl.isNotEmpty
+                      ? Image.network(
+                        imageUrl,
+                        width: double.infinity,
+                        height: double.infinity,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            color: AppColors.secondaryBg,
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                value:
+                                    loadingProgress.expectedTotalBytes != null
+                                        ? loadingProgress
+                                                .cumulativeBytesLoaded /
+                                            loadingProgress.expectedTotalBytes!
+                                        : null,
+                                color: AppColors.primaryOrange,
+                              ),
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: AppColors.secondaryBg,
+                            child: const Center(
+                              child: Icon(
+                                Icons.broken_image,
+                                size: 64,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                          );
+                        },
+                      )
+                      : Container(
+                        color: AppColors.secondaryBg,
+                        child: const Center(
+                          child: Icon(
+                            Icons.image,
+                            size: 64,
+                            color: AppColors.textMuted,
+                          ),
                         ),
                       ),
-                    );
-                  },
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: AppColors.secondaryBg,
-                      child: const Center(
-                        child: Icon(
-                          Icons.broken_image,
-                          size: 64,
-                          color: AppColors.textMuted,
-                        ),
-                      ),
-                    );
-                  },
-                )
-                : Container(
-                  color: AppColors.secondaryBg,
-                  child: const Center(
-                    child: Icon(
-                      Icons.image,
-                      size: 64,
-                      color: AppColors.textMuted,
-                    ),
-                  ),
-                ),
-
-            // Description overlay at the bottom center
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8.0,
-                  vertical: 8.0,
-                ),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.black, Colors.black.withOpacity(0.8)],
-                    ),
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                  ),
-                  child: Text(
-                    description,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ),
             ),
+            // Container(
+            //   padding: const EdgeInsets.all(16),
+            //   decoration: const BoxDecoration(
+            //     color: AppColors.cardBg,
+            //     borderRadius: BorderRadius.only(
+            //       bottomLeft: Radius.circular(16),
+            //       bottomRight: Radius.circular(16),
+            //     ),
+            //   ),
+            //   child: Text(
+            //     description,
+            //     style: const TextStyle(
+            //       color: AppColors.textSecondary,
+            //       fontSize: 14,
+            //       fontWeight: FontWeight.w500,
+            //     ),
+            //     textAlign: TextAlign.center,
+            //     maxLines: 3,
+            //     overflow: TextOverflow.ellipsis,
+            //   ),
+            // ),
           ],
         ),
       ),

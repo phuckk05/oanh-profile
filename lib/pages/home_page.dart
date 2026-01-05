@@ -29,8 +29,10 @@ class _HomePageState extends ConsumerState<HomePage> {
       case 1:
         return 'About';
       case 2:
-        return 'Blog';
+        return 'Portfolio';
       case 3:
+        return 'Blog';
+      case 4:
         return 'Settings';
       default:
         return 'Home';
@@ -40,6 +42,15 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+
+    // Reset currentIndex to Home if user logs out while on Settings page
+    if (!authState.isLoggedIn && _currentIndex == 4) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() => _currentIndex = 0);
+        }
+      });
+    }
 
     return Scaffold(
       body: CosmicBackground(
@@ -66,6 +77,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 children: [
                   _buildHomePage(),
                   const AboutPage(),
+                  const PortfolioPage(),
                   const BlogPage(),
                   if (authState.isLoggedIn) const SettingsPage(),
                 ],
@@ -297,10 +309,10 @@ class _HomePageState extends ConsumerState<HomePage> {
             icon: Icon(Icons.person),
             label: 'About',
           ),
-          // const BottomNavigationBarItem(
-          //   icon: Icon(Icons.work),
-          //   label: 'Portfolio',
-          // ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.work),
+            label: 'Portfolio',
+          ),
           const BottomNavigationBarItem(
             icon: Icon(Icons.article),
             label: 'Blog',

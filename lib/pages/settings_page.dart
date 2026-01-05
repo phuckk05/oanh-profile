@@ -32,6 +32,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _isEditingGallery = false;
   String? _editingGalleryId;
 
+  // Project form controllers
+  final TextEditingController _projectTitleController = TextEditingController();
+  final TextEditingController _projectDescController = TextEditingController();
+  String? _projectImageUrl;
+  bool _isEditingProject = false;
+  String? _editingProjectId;
+
   bool _isLoading = false;
 
   @override
@@ -46,6 +53,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     _majorController.dispose();
     _descriptionController.dispose();
     _galleryDescController.dispose();
+    _projectTitleController.dispose();
+    _projectDescController.dispose();
     super.dispose();
   }
 
@@ -246,6 +255,77 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     });
   }
 
+  // Add or update project
+  Future<void> _saveProject() async {
+    if (_projectTitleController.text.trim().isEmpty ||
+        _projectDescController.text.trim().isEmpty) {
+      _showSnackBar('Vui lòng nhập đầy đủ thông tin project', isError: true);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final data = {
+        'title': _projectTitleController.text.trim(),
+        'description': _projectDescController.text.trim(),
+        'imageUrl': _projectImageUrl ?? '',
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      if (_isEditingProject && _editingProjectId != null) {
+        // Update existing
+        await _firestore
+            .collection('projects')
+            .doc(_editingProjectId)
+            .update(data);
+        _showSnackBar('Đã cập nhật project!');
+      } else {
+        // Create new
+        data['createdAt'] = FieldValue.serverTimestamp();
+        await _firestore.collection('projects').add(data);
+        _showSnackBar('Đã thêm project mới!');
+      }
+
+      // Reset form
+      setState(() {
+        _projectTitleController.clear();
+        _projectDescController.clear();
+        _projectImageUrl = null;
+        _isEditingProject = false;
+        _editingProjectId = null;
+      });
+    } catch (e) {
+      _showSnackBar('Lỗi khi lưu: $e', isError: true);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  // Delete project
+  Future<void> _deleteProject(String docId) async {
+    final confirm = await _showConfirmDialog('Xóa project này?');
+    if (!confirm) return;
+
+    try {
+      await _firestore.collection('projects').doc(docId).delete();
+      _showSnackBar('Đã xóa project!');
+    } catch (e) {
+      _showSnackBar('Lỗi khi xóa: $e', isError: true);
+    }
+  }
+
+  // Edit project
+  void _editProject(String docId, Map<String, dynamic> data) {
+    setState(() {
+      _isEditingProject = true;
+      _editingProjectId = docId;
+      _projectTitleController.text = data['title'] ?? '';
+      _projectDescController.text = data['description'] ?? '';
+      _projectImageUrl = data['imageUrl'];
+    });
+  }
+
   void _showSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -350,6 +430,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
               const SizedBox(height: 20),
               _buildGalleryListSection(),
+
+              const SizedBox(height: 40),
+
+              // SECTION 3: Projects Management
+              _buildSectionTitle('Quản lý Projects', Icons.work),
+              const SizedBox(height: 20),
+              _buildProjectAddSection(),
+
+              const SizedBox(height: 20),
+              _buildProjectListSection(),
 
               const SizedBox(height: 40),
 
@@ -912,7 +1002,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ElevatedButton(
                 onPressed: () {
                   ref.read(authProvider.notifier).logout();
-                  Navigator.of(context).pop();
+                  Navigator.of(context).pop(); // Close dialog
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
@@ -922,6 +1012,330 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ),
             ],
           ),
+    );
+  }
+
+  // Build project add section
+  Widget _buildProjectAddSection() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _isEditingProject ? 'Chỉnh sửa Project' : 'Thêm Project mới',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Image picker (optional)
+          GestureDetector(
+            onTap: () async {
+              final url = await _pickAndUploadImage('projects');
+              if (url != null) {
+                setState(() => _projectImageUrl = url);
+              }
+            },
+            child: Container(
+              width: double.infinity,
+              height: 200,
+              decoration: BoxDecoration(
+                color: AppColors.secondaryBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.borderColor, width: 2),
+                image:
+                    _projectImageUrl != null
+                        ? DecorationImage(
+                          image: NetworkImage(_projectImageUrl!),
+                          fit: BoxFit.cover,
+                        )
+                        : null,
+              ),
+              child:
+                  _projectImageUrl == null
+                      ? const Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.add_photo_alternate,
+                            size: 48,
+                            color: AppColors.textMuted,
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Nhấn để chọn ảnh (tùy chọn)',
+                            style: TextStyle(color: AppColors.textMuted),
+                          ),
+                        ],
+                      )
+                      : null,
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Title field
+          _buildTextField(
+            controller: _projectTitleController,
+            label: 'Tên Project',
+            hint: 'Nhập tên project...',
+            icon: Icons.title,
+          ),
+
+          const SizedBox(height: 16),
+
+          // Description field
+          _buildTextField(
+            controller: _projectDescController,
+            label: 'Mô tả Project',
+            hint: 'Nhập mô tả chi tiết...',
+            icon: Icons.description,
+            maxLines: 4,
+          ),
+
+          const SizedBox(height: 16),
+
+          // Action buttons
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _saveProject,
+                  icon: Icon(_isEditingProject ? Icons.update : Icons.add),
+                  label: Text(_isEditingProject ? 'Cập nhật' : 'Thêm Project'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryOrange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+              if (_isEditingProject) ...[
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _isEditingProject = false;
+                      _editingProjectId = null;
+                      _projectTitleController.clear();
+                      _projectDescController.clear();
+                      _projectImageUrl = null;
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.secondaryBg,
+                    foregroundColor: AppColors.textSecondary,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 16,
+                      horizontal: 24,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text('Hủy'),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Build project list section
+  Widget _buildProjectListSection() {
+    return StreamBuilder<QuerySnapshot>(
+      stream:
+          _firestore
+              .collection('projects')
+              .orderBy('createdAt', descending: true)
+              .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Lỗi: ${snapshot.error}',
+              style: const TextStyle(color: Colors.red),
+            ),
+          );
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(color: AppColors.primaryOrange),
+          );
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.all(40),
+            decoration: BoxDecoration(
+              color: AppColors.cardBg,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.borderColor),
+            ),
+            child: const Center(
+              child: Text(
+                'Chưa có project nào',
+                style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
+              ),
+            ),
+          );
+        }
+
+        final projects = snapshot.data!.docs;
+        final size = MediaQuery.of(context).size;
+        final isMobile = size.width < 800;
+
+        return ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: projects.length,
+          itemBuilder: (context, index) {
+            final doc = projects[index];
+            final data = doc.data() as Map<String, dynamic>;
+            final title = data['title'] as String? ?? '';
+            final description = data['description'] as String? ?? '';
+            final imageUrl = data['imageUrl'] as String?;
+
+            return _buildProjectCard(
+              doc.id,
+              title,
+              description,
+              imageUrl,
+              data,
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildProjectCard(
+    String docId,
+    String title,
+    String description,
+    String? imageUrl,
+    Map<String, dynamic> data,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: AppColors.cardBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Image (if available)
+          if (imageUrl != null && imageUrl.isNotEmpty)
+            ClipRRect(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+              child: Image.network(
+                imageUrl,
+                height: 200,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 200,
+                    color: AppColors.secondaryBg,
+                    child: const Icon(
+                      Icons.broken_image,
+                      size: 48,
+                      color: AppColors.textMuted,
+                    ),
+                  );
+                },
+              ),
+            ),
+
+          // Content and actions
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primaryOrange,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  description,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                  ),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _editProject(docId, data),
+                        icon: const Icon(Icons.edit, size: 16),
+                        label: const Text('Sửa'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryOrange.withOpacity(
+                            0.1,
+                          ),
+                          foregroundColor: AppColors.primaryOrange,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      onPressed: () => _deleteProject(docId),
+                      icon: const Icon(Icons.delete, size: 16),
+                      label: const Text('Xóa'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.withOpacity(0.1),
+                        foregroundColor: Colors.red,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                          horizontal: 16,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

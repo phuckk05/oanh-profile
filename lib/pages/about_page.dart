@@ -2,10 +2,40 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../utils/app_colors.dart';
+import '../utils/open_external_url.dart';
 
 /// About Page
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
+
+  Future<void> openUrl(String url, BuildContext context) async {
+    try {
+      final trimmed = url.trim();
+      final uri = Uri.parse(trimmed);
+      final normalizedUrl = uri.scheme.isEmpty ? 'https://$trimmed' : trimmed;
+
+      final launched = await openExternalUrl(normalizedUrl);
+      if (!launched) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Không thể mở link: $url'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,23 +79,26 @@ class AboutPage extends StatelessWidget {
                     icon: FontAwesomeIcons.facebook,
                     label: 'Facebook',
                     onTap: () {
-                      // Add your Facebook link here
+                      openUrl('https://www.facebook.com/kmnhhz', context);
                     },
                   ),
                   const SizedBox(width: 16),
                   _buildSocialIcon(
-                    icon: FontAwesomeIcons.tiktok,
-                    label: 'TikTok',
+                    icon: FontAwesomeIcons.linkedin,
+                    label: 'LinkedIn',
                     onTap: () {
-                      // Add your TikTok link here
+                      openUrl('https://www.linkedin.com/in/kmnhhz', context);
                     },
                   ),
                   const SizedBox(width: 16),
                   _buildSocialIcon(
-                    icon: FontAwesomeIcons.instagram,
-                    label: 'Instagram',
+                    icon: FontAwesomeIcons.mapLocation,
+                    label: 'Address',
                     onTap: () {
-                      // Add your Instagram link here
+                      openUrl(
+                        "https://www.google.com/maps/place/Tp.+H%C3%A0+T%C4%A9nh,+H%C3%A0+T%C4%A9nh,+Vi%E1%BB%87t+Nam/@18.3543214,105.8606304,12591m/data=!3m2!1e3!4b1!4m6!3m5!1s0x31384e25a01235b9:0xbcd7270a51316e31!8m2!3d18.3420419!4d105.8923492!16zL20vMDdtMV95!5m1!1e1?entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoKLDEwMDc5MjA3MUgBUAM%3D",
+                        context,
+                      );
                     },
                   ),
                   const SizedBox(width: 16),
@@ -73,7 +106,7 @@ class AboutPage extends StatelessWidget {
                     icon: FontAwesomeIcons.phone,
                     label: 'Zalo',
                     onTap: () {
-                      // Add your Zalo link here
+                      openUrl('https://zalo.me/0328566452', context);
                     },
                   ),
                 ],

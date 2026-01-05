@@ -19,6 +19,10 @@ service cloud.firestore {
       allow read: if true;
       allow write: if true;
     }
+    match /projects/{projectId} {
+      allow read: if true;
+      allow write: if true;
+    }
     
     // Default rule - deny all other access
     match /{document=**} {
